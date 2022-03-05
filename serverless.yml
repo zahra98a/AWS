@@ -1,0 +1,83 @@
+service: myserverlessproject
+frameworkVersion: '3'
+ 
+provider:
+  name: aws
+  runtime: nodejs12.x
+  profile: serverlessUserAccess
+  region: us-east-1
+  environment:
+    tableName: ${self:custom.tableName}
+    bucketName: ${self:custom.bucketName}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+        - s3:*
+      Resource: '*'  
+
+
+plugins:    
+  - serverless-s3-sync
+
+custom:
+  tableName: students-table
+  bucketName: s00175911-serverlessproject
+  s3Sync:
+    - bucketName: ${self:custom.bucketName}
+      localDir: UploadData
+
+functions:
+  getUser:
+    handler: lambdas/endpoints/getUser.handler
+    events:
+      - http:
+          path: get-user/{ID}
+          method: GET
+          cors: true
+  getStudentScore:
+    handler: lambdas/endpoints/getStudentScore.handler
+    events:
+      - http:
+          path: get-student-score/{ID}
+          method: GET
+          cors: true  
+  createStudentScore:
+    handler: lambdas/endpoints/createStudentScore.handler
+    events:
+      - http:
+          path: create-student-score/{ID}
+          method: POST
+          cors: true 
+  createFile:
+    handler: lambdas/endpoints/createFile.handler
+    events:
+      - http:
+          path: create-file/{fileName}
+          method: POST
+          cors: true     
+  getFile:
+    handler: lambdas/endpoints/getFile.handler
+    events:
+      - http:
+          path: get-file/{fileName}
+          method: GET
+          cors: true                       
+
+resources:
+  Resources:
+    DemoBucketUpload:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucketName} 
+    MyDynamoDbTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                TableName: ${self:custom.tableName}
+                AttributeDefinitions:
+                    - AttributeName: ID
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: ID
+                      KeyType: HASH
+                BillingMode: PAY_PER_REQUEST
